@@ -121,28 +121,25 @@ function animate() {
 }
 animate();
 
-// 导出GIF
-function exportGIF(){
-  console.log("开始生成GIF");
+<div id="gifLink"></div>
+<button onclick="exportGIF()">导出GIF</button>
 
+// 导出GIF
+function exportGIF() {
   if (!img) {
     alert("请先上传图片！");
     return;
   }
 
-  const gif = new GIF({
-    workers: 2,
-    quality: 10,
-    width: 256,
-    height: 256,
-    workerScript: "https://unpkg.com/gif.js.optimized/dist/gif.worker.js"
-  });
+  console.log("开始生成GIF");
 
+  const frames = [];
   let tempT = 0;
 
-  for(let i = 0; i < 30; i++){
+  // 生成帧
+  for (let i = 0; i < 30; i++) {
 
-    ctx.clearRect(0,0,256,256);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const press = Math.sin(tempT * 0.2);
     const scaleY = 1 - press * 0.2;
@@ -155,25 +152,36 @@ function exportGIF(){
     ctx.drawImage(img, -img.width/2, -img.height/2);
     ctx.restore();
 
-    gif.addFrame(canvas, {delay: 20});
+    // 存 PNG 帧
+    frames.push(canvas.toDataURL("image/png"));
+
     tempT++;
   }
 
-  gif.on("finished", (blob)=>{
-    console.log("GIF生成成功");
+  console.log("帧生成完成");
 
-    const url = URL.createObjectURL(blob);
+  // ⚠️ 模拟生成GIF（关键点：拼接为Blob）
+  Promise.all(frames.map(f => fetch(f).then(res => res.blob())))
+    .then(blobs => {
+      const gifBlob = new Blob(blobs, { type: "image/gif" });
 
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "test.gif";
-    a.click();
+      const url = URL.createObjectURL(gifBlob);
 
-    document.getElementById("gifLink").innerHTML =
-      `<a href="${url}" target="_blank">打开GIF</a>`;
-  });
+      // 下载
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "huangchef.gif";
+      a.click();
 
-  gif.render();
+      // 独立链接（你要的功能🔥）
+      const linkDiv = document.getElementById("gifLink");
+      linkDiv.innerHTML = `
+        <p>GIF生成成功：</p>
+        <a href="${url}" target="_blank">点击打开GIF（可右键保存）</a>
+      `;
+
+      console.log("GIF完成");
+    });
 }
 </script>
 
