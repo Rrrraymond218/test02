@@ -1,21 +1,34 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
-    <meta charset="UTF-8">
-    <title>黄大厨炒制动图生成器</title>
-    <style>
-        body {
-            font-family: Arial, 微软雅黑;
-            margin: 50px;
-            line-height: 2;
-        }
-        button {
-            padding: 8px 16px;
-            cursor: pointer;
-            margin: 0 5px;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>黄大厨炒制 · 动图生成器</title>
+<style>
+body {
+  font-family: -apple-system;
+  text-align: center;
+  background: #f6f6f6;
+  padding: 20px;
+}
+canvas {
+  background: #fff;
+  border-radius: 12px;
+  margin: 10px 0;
+}
+.controls {
+  margin: 10px;
+}
+button, input {
+  margin: 5px;
+  padding: 6px 10px;
+}
+#gifLink {
+  margin-top: 10px;
+  word-break: break-all;
+}
+</style>
 </head>
+
 <body>
 
 <h2>🍳 黄大厨炒制动图生成器</h2>
@@ -33,138 +46,153 @@
 
 <br>
 <button id="export">导出GIF</button>
+<div id="gifLink"></div>
 <a id="previewLink" target="_blank"></a>
 
 <script src="https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.js"></script>
 
 <script>
-const canvas = document.getElementById("canvas")
-const ctx = canvas.getContext("2d")
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-const upload = document.getElementById("upload")
-const speedInput = document.getElementById("speed")
-const scaleInput = document.getElementById("scale")
-const flipInput = document.getElementById("flip")
-const slogan = document.getElementById("slogan")
+const upload = document.getElementById("upload");
+const speedInput = document.getElementById("speed");
+const scaleInput = document.getElementById("scale");
+const flipInput = document.getElementById("flip");
+const slogan = document.getElementById("slogan");
 
-let img = null
-let t = 0
+let img = null;
+let t = 0;
+let exporting = false;
 
 const slogans = [
   "🔥 黄大厨开火！",
   "🍳 爆炒进行中...",
-  "🥢 翻锅！加点料！",
-  "🌶️ 香味出来了！",
+  "🌶️ 火候刚刚好！",
+  "🥢 快翻锅！",
   "🍲 出锅啦！"
-]
+];
 
+// 上传图片
 upload.onchange = e => {
-  const file = e.target.files[0]
-  if (!file) return
+  const file = e.target.files[0];
+  if (!file) return;
 
-  const reader = new FileReader()
+  const reader = new FileReader();
   reader.onload = () => {
-    img = new Image()
-    img.src = reader.result
-  }
-  reader.readAsDataURL(file)
-}
+    img = new Image();
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+};
 
-function draw() {
-  requestAnimationFrame(draw)
-  ctx.clearRect(0,0,256,256)
-  if (!img) return
+// 动画预览
+function animate() {
+  requestAnimationFrame(animate);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  const speed = parseFloat(speedInput.value)
-  const scaleUser = parseFloat(scaleInput.value)
-  const flip = flipInput.checked ? -1 : 1
+  if (!img) return;
 
-  const cx = 128
-  const cy = 128
+  const speed = parseFloat(speedInput.value);
+  const scaleUser = parseFloat(scaleInput.value);
+  const flip = flipInput.checked ? -1 : 1;
 
-  const baseScale = Math.min(200/img.width,200/img.height)
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
 
-  const press = Math.sin(t * 0.2 * speed)
-  const scaleY = 1 - press * 0.2
-  const scaleX = 1 + press * 0.1
+  const baseScale = Math.min(200 / img.width, 200 / img.height);
 
-  const yOffset = press * 10
+  const press = Math.sin(t * 0.2 * speed);
+  const scaleY = 1 - press * 0.2;
+  const scaleX = 1 + press * 0.1;
+  const yOffset = press * 10;
 
-  ctx.save()
-  ctx.translate(cx, cy + yOffset)
-  ctx.scale(flip * scaleX * baseScale * scaleUser, scaleY * baseScale * scaleUser)
-
-  ctx.drawImage(img, -img.width/2, -img.height/2)
-
-  ctx.restore()
+  ctx.save();
+  ctx.translate(cx, cy + yOffset);
+  ctx.scale(flip * scaleX * baseScale * scaleUser, scaleY * baseScale * scaleUser);
+  ctx.drawImage(img, -img.width / 2, -img.height / 2);
+  ctx.restore();
 
   if (t % 30 === 0) {
-    slogan.innerText = slogans[Math.floor(Math.random()*slogans.length)]
+    slogan.innerText = slogans[Math.floor(Math.random() * slogans.length)];
   }
 
-  t++
+  t++;
 }
+animate();
 
-draw()
+// 导出GIF
+function exportGIF(){
+  if (!img) {
+    alert("请先上传图片！");
+    return;
+  }
 
-document.getElementById("export").onclick = () => {
-  if (!img) return alert("先上传图片")
+  if (exporting) return;
+  exporting = true;
 
   const gif = new GIF({
     workers: 2,
     quality: 10,
+    width: canvas.width,
+    height: canvas.height,
     workerScript: "https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.worker.js"
-  })
+  });
 
-  let frames = 50
-  let tempT = 0
+  let tempT = 0;
+  let frames = 50;
 
-  for (let i=0;i<frames;i++) {
+  for(let i = 0; i < frames; i++){
 
-    ctx.clearRect(0,0,256,256)
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    const speed = parseFloat(speedInput.value)
-    const scaleUser = parseFloat(scaleInput.value)
-    const flip = flipInput.checked ? -1 : 1
+    const speed = parseFloat(speedInput.value);
+    const scaleUser = parseFloat(scaleInput.value);
+    const flip = flipInput.checked ? -1 : 1;
 
-    const cx = 128
-    const cy = 128
+    const cx = canvas.width/2;
+    const cy = canvas.height/2;
 
-    const baseScale = Math.min(200/img.width,200/img.height)
+    const baseScale = Math.min(200/img.width,200/img.height);
 
-    const press = Math.sin(tempT * 0.2 * speed)
-    const scaleY = 1 - press * 0.2
-    const scaleX = 1 + press * 0.1
-    const yOffset = press * 10
+    const press = Math.sin(tempT * 0.2 * speed);
+    const scaleY = 1 - press * 0.2;
+    const scaleX = 1 + press * 0.1;
+    const yOffset = press * 10;
 
-    ctx.save()
-    ctx.translate(cx, cy + yOffset)
-    ctx.scale(flip * scaleX * baseScale * scaleUser, scaleY * baseScale * scaleUser)
-    ctx.drawImage(img, -img.width/2, -img.height/2)
-    ctx.restore()
+    ctx.save();
+    ctx.translate(cx, cy + yOffset);
+    ctx.scale(flip * scaleX * baseScale * scaleUser, scaleY * baseScale * scaleUser);
+    ctx.drawImage(img, -img.width/2, -img.height/2);
+    ctx.restore();
 
-    gif.addFrame(canvas, {delay: 20})
-    tempT++
+    gif.addFrame(canvas, {delay: 20});
+    tempT++;
   }
 
-  gif.on("finished", blob => {
-    const url = URL.createObjectURL(blob)
+  gif.on("finished", (blob)=>{
+    exporting = false;
 
-    // 下载
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "huangchef.gif"
-    a.click()
+    const url = URL.createObjectURL(blob);
 
-    // 提供链接
-    const link = document.getElementById("previewLink")
-    link.href = url
-    link.innerText = "点击打开GIF或右键保存：" + url
-  })
+    // 自动下载
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "黄大厨爆炒.gif";
+    a.click();
 
-  gif.render()
+    // 提供分享链接
+    const link = document.getElementById("gifLink");
+    link.innerHTML = `
+      <p>GIF已生成：</p>
+      <a href="${url}" target="_blank">${url}</a>
+    `;
+  });
+
+  gif.render();
 }
 </script>
+
 
 </body>
 </html>
