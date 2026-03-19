@@ -171,23 +171,24 @@ function exportGIF(){
   }
 
   gif.on("finished", (blob)=>{
-    exporting = false;
+  console.log("GIF生成完成");
 
-    const url = URL.createObjectURL(blob);
+  // ✅ 正确：用 blob URL
+  const url = URL.createObjectURL(blob);
 
-    // 自动下载
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "黄大厨爆炒.gif";
-    a.click();
+  // 下载
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "huangchef.gif";
+  a.click();
 
-    // 提供分享链接
-    const link = document.getElementById("gifLink");
-    link.innerHTML = `
-      <p>GIF已生成：</p>
-      <a href="${url}" target="_blank">${url}</a>
-    `;
-  });
+  // 展示链接（注意不要用 base64）
+  const link = document.getElementById("gifLink");
+  link.innerHTML = `
+    <p>GIF已生成：</p>
+    <a href="${url}" target="_blank">点击打开或右键保存</a>
+  `;
+});
 
   gif.render();
 }
